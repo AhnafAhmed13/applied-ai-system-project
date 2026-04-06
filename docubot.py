@@ -58,11 +58,19 @@ class DocuBot:
         "what", "which", "who", "how", "where", "when", "why",
     }
 
+    def _depluralize(self, word):
+        if word.endswith('ies') and len(word) > 4:
+            return word[:-3] + 'y'          # "queries" → "query"
+        if word.endswith('s') and len(word) > 3 and not word.endswith('ss'):
+            return word[:-1]                # "tokens" → "token", guards "access"/"process"
+        return word
+
     def _tokenize(self, text):
         cleaned = text.lower()
         for ch in '.,!?;:"\'/\\()[]{}':
             cleaned = cleaned.replace(ch, ' ')
-        return [w for w in cleaned.split() if w not in self.STOP_WORDS]
+        return [self._depluralize(w) for w in cleaned.split()
+                if w not in self.STOP_WORDS]
 
     def build_index(self, documents):
         """
