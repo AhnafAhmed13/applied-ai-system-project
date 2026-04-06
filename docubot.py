@@ -118,7 +118,15 @@ class DocuBot:
                 results.append((score, filename, text))
 
         results.sort(key=lambda x: x[0], reverse=True)
-        return [(filename, text) for _, filename, text in results[:top_k]]
+        return [(filename, self._extract_snippet(query, text))
+                for _, filename, text in results[:top_k]]
+
+    def _extract_snippet(self, query, text):
+        query_words = set(self._tokenize(query))
+        paragraphs = text.split('\n\n')
+        matches = [p.strip() for p in paragraphs
+                   if any(w in self._tokenize(p) for w in query_words)]
+        return '\n\n'.join(matches[:3]) if matches else text[:500]
 
     # -----------------------------------------------------------
     # Answering Modes
