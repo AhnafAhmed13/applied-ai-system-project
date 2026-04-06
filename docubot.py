@@ -48,11 +48,21 @@ class DocuBot:
     # Index Construction (Phase 1)
     # -----------------------------------------------------------
 
+    STOP_WORDS = {
+        "a", "an", "the", "and", "or", "but", "in", "on", "at", "to",
+        "for", "of", "with", "by", "from", "is", "are", "was", "were",
+        "be", "been", "being", "have", "has", "had", "do", "does", "did",
+        "will", "would", "could", "should", "may", "might", "it", "its",
+        "this", "that", "these", "those", "i", "you", "we", "they", "he",
+        "she", "not", "no", "if", "as", "any", "all", "there", "so",
+        "what", "which", "who", "how", "where", "when", "why",
+    }
+
     def _tokenize(self, text):
         cleaned = text.lower()
         for ch in '.,!?;:"\'/\\()[]{}':
             cleaned = cleaned.replace(ch, ' ')
-        return cleaned.split()
+        return [w for w in cleaned.split() if w not in self.STOP_WORDS]
 
     def build_index(self, documents):
         """
@@ -99,12 +109,16 @@ class DocuBot:
                 score += 1
         return score
 
-    def retrieve(self, query, top_k=3):
+    def retrieve(self, query, top_k=3, min_score=1):
         """
         TODO (Phase 1):
         Use the index and scoring function to select top_k relevant document snippets.
 
         Return a list of (filename, text) sorted by score descending.
+
+        min_score: minimum number of query words that must appear in a document
+        for it to be considered meaningful evidence. Documents below this
+        threshold are excluded — they likely matched only on stop words.
         """
         candidate_filenames = set()
         for word in self._tokenize(query):
@@ -115,7 +129,8 @@ class DocuBot:
         for filename, text in self.documents:
             if filename in candidate_filenames:
                 score = self.score_document(query, text)
-                results.append((score, filename, text))
+                if score >= min_score:
+                    results.append((score, filename, text))
 
         results.sort(key=lambda x: x[0], reverse=True)
         return [(filename, self._extract_snippet(query, text))
