@@ -80,3 +80,18 @@ You will primarily work in:
 - Python 3.9+
 - A Gemini API key for LLM features (only needed for modes 1 and 3)
 - No database, no server setup, no external services besides LLM calls
+
+---
+
+# TF Summary
+
+The core concept students needed to understand is how a retrieval-augmented generation (RAG) pipeline differs from simply passing all documents to an LLM, specifically, how an inverted index narrows candidate documents before scoring and snippet extraction reduce noise for the model.
+
+Students are most likely to struggle with the scoring and retrieval step, particularly the conceptual leap from "does this document contain any query word?" to "how relevant is this document overall?" Students also might run into issues setting up the Gemini API key, either hardcoding it directly in source files instead of using a `.env` file, or not understanding why exposing it in code is a security risk.
+
+AI tools were genuinely helpful for generating boilerplate like tokenization loops and the inverted index structure. Overall, AI was more helpful than misleading in this project. It assisted with debugging tokenization logic, explaining how inverted indexes work conceptually, and comparing test queries to verify retrieval behavior.
+
+To guide a student without giving the answer, ask them:
+- How do you compute the inverted index? What maps to what, and why?
+- How do you decide which words are relevant or important enough to use for matching?
+- What should you actually include in your matched snippets? The whole document, the matching paragraph, or something in between?
