@@ -8,6 +8,7 @@ __pycache__/
 venv/
 .env/
 .env.bak/
+.venv
 
 # Environment variables
 *.env
@@ -25,3 +26,4 @@ venv/
 
 # Logs
 *.log
+__pycache__/docubot.cpython-314.pyc
