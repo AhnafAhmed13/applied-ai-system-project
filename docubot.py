@@ -64,7 +64,15 @@ class DocuBot:
         ignore punctuation if needed.
         """
         index = {}
-        # TODO: implement simple indexing
+        for filename, text in documents:
+            cleaned = text.lower()
+            for ch in '.,!?;:"\'/\\()[]{}':
+                cleaned = cleaned.replace(ch, ' ')
+            for word in cleaned.split():
+                if word not in index:
+                    index[word] = []
+                if filename not in index[word]:
+                    index[word].append(filename)
         return index
 
     # -----------------------------------------------------------
