@@ -48,6 +48,12 @@ class DocuBot:
     # Index Construction (Phase 1)
     # -----------------------------------------------------------
 
+    def _tokenize(self, text):
+        cleaned = text.lower()
+        for ch in '.,!?;:"\'/\\()[]{}':
+            cleaned = cleaned.replace(ch, ' ')
+        return cleaned.split()
+
     def build_index(self, documents):
         """
         TODO (Phase 1):
@@ -65,10 +71,7 @@ class DocuBot:
         """
         index = {}
         for filename, text in documents:
-            cleaned = text.lower()
-            for ch in '.,!?;:"\'/\\()[]{}':
-                cleaned = cleaned.replace(ch, ' ')
-            for word in cleaned.split():
+            for word in self._tokenize(text):
                 if word not in index:
                     index[word] = []
                 if filename not in index[word]:
@@ -89,10 +92,10 @@ class DocuBot:
         - Count how many appear in the text
         - Return the count as the score
         """
-        text_lower = text.lower()
+        text_words = set(self._tokenize(text))
         score = 0
-        for word in query.lower().split():
-            if word in text_lower:
+        for word in self._tokenize(query):
+            if word in text_words:
                 score += 1
         return score
 
@@ -104,7 +107,7 @@ class DocuBot:
         Return a list of (filename, text) sorted by score descending.
         """
         candidate_filenames = set()
-        for word in query.lower().split():
+        for word in self._tokenize(query):
             if word in self.index:
                 candidate_filenames.update(self.index[word])
 
