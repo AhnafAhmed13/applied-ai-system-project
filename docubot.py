@@ -139,9 +139,15 @@ class DocuBot:
     def _extract_snippet(self, query, text):
         query_words = set(self._tokenize(query))
         paragraphs = text.split('\n\n')
-        matches = [p.strip() for p in paragraphs
-                   if any(w in self._tokenize(p) for w in query_words)]
-        return '\n\n'.join(matches[:3]) if matches else text[:500]
+        collected = []
+        for i, p in enumerate(paragraphs):
+            p = p.strip()
+            if any(w in self._tokenize(p) for w in query_words):
+                if p.startswith('#') and i + 1 < len(paragraphs):
+                    collected.append(p + '\n\n' + paragraphs[i + 1].strip())
+                else:
+                    collected.append(p)
+        return '\n\n'.join(collected[:3]) if collected else text[:500]
 
     # -----------------------------------------------------------
     # Answering Modes
