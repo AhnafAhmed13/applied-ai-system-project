@@ -103,9 +103,19 @@ class DocuBot:
 
         Return a list of (filename, text) sorted by score descending.
         """
+        candidate_filenames = set()
+        for word in query.lower().split():
+            if word in self.index:
+                candidate_filenames.update(self.index[word])
+
         results = []
-        # TODO: implement retrieval logic
-        return results[:top_k]
+        for filename, text in self.documents:
+            if filename in candidate_filenames:
+                score = self.score_document(query, text)
+                results.append((score, filename, text))
+
+        results.sort(key=lambda x: x[0], reverse=True)
+        return [(filename, text) for _, filename, text in results[:top_k]]
 
     # -----------------------------------------------------------
     # Answering Modes
