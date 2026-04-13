@@ -237,6 +237,8 @@ class DocuBot:
         Phase 2 RAG mode.
         Uses student retrieval to select snippets, then asks Gemini
         to generate an answer using only those snippets.
+        Appends a confidence score (0-1) based on how many query words
+        appear in the LLM response, along with the matched words.
         """
         if self.llm_client is None:
             raise RuntimeError(
@@ -248,7 +250,24 @@ class DocuBot:
         if not snippets:
             return "I do not know based on these docs."
 
-        return self.llm_client.answer_from_snippets(query, snippets)
+        llm_response = self.llm_client.answer_from_snippets(query, snippets)
+
+        _, matched_words = self._score_document_with_matches(query, llm_response)
+        confidence = self._confidence(query, matched_words)
+
+        query_tokens = set(self._tokenize(query))
+        bar_len = 20
+        filled = round(confidence * bar_len)
+        bar = "[" + "#" * filled + "-" * (bar_len - filled) + "]"
+        matched_display = ", ".join(sorted(matched_words)) if matched_words else "(none)"
+
+        confidence_block = (
+            f"Confidence: {bar} {confidence:.2f}  "
+            f"({len(matched_words)} / {len(query_tokens)} query words in response)\n"
+            f"Matched words: {matched_display}"
+        )
+
+        return f"{confidence_block}\n\n{llm_response}"
 
     # -----------------------------------------------------------
     # Bonus Helper: concatenated docs for naive generation mode
