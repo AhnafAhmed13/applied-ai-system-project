@@ -110,12 +110,30 @@ class DocuBot:
         - Count how many appear in the text
         - Return the count as the score
         """
+        score, _ = self._score_document_with_matches(query, text)
+        return score
+
+    def _score_document_with_matches(self, query, text):
+        """
+        Returns (score, matched_words) where matched_words is the set of
+        query tokens that appear in the document text.
+        """
         text_words = set(self._tokenize(text))
-        score = 0
+        matched = set()
         for word in self._tokenize(query):
             if word in text_words:
-                score += 1
-        return score
+                matched.add(word)
+        return len(matched), matched
+
+    def _confidence(self, query, matched_words):
+        """
+        Returns a confidence score in [0, 1]: the fraction of unique
+        non-stop query tokens that were found in the document.
+        """
+        query_tokens = set(self._tokenize(query))
+        if not query_tokens:
+            return 0.0
+        return round(len(matched_words) / len(query_tokens), 4)
 
     def retrieve(self, query, top_k=3, min_score=1):
         """
@@ -136,13 +154,39 @@ class DocuBot:
         results = []
         for filename, text in self.documents:
             if filename in candidate_filenames:
-                score = self.score_document(query, text)
+                score, _ = self._score_document_with_matches(query, text)
                 if score >= min_score:
                     results.append((score, filename, text))
 
         results.sort(key=lambda x: x[0], reverse=True)
         return [(filename, self._extract_snippet(query, text))
                 for _, filename, text in results[:top_k]]
+
+    def retrieve_with_scores(self, query, top_k=3, min_score=1):
+        """
+        Like retrieve(), but each result also includes a confidence score
+        (0-1) and the set of matched words between the query and document.
+
+        Returns a list of (filename, snippet, confidence, matched_words).
+        """
+        candidate_filenames = set()
+        for word in self._tokenize(query):
+            if word in self.index:
+                candidate_filenames.update(self.index[word])
+
+        results = []
+        for filename, text in self.documents:
+            if filename in candidate_filenames:
+                score, matched = self._score_document_with_matches(query, text)
+                if score >= min_score:
+                    results.append((score, matched, filename, text))
+
+        results.sort(key=lambda x: x[0], reverse=True)
+        return [
+            (filename, self._extract_snippet(query, text),
+             self._confidence(query, matched), matched)
+            for _, matched, filename, text in results[:top_k]
+        ]
 
     def _extract_snippet(self, query, text):
         query_words = set(self._tokenize(query))
@@ -165,15 +209,26 @@ class DocuBot:
         """
         Phase 1 retrieval only mode.
         Returns raw snippets and filenames with no LLM involved.
+        Includes a confidence score (0-1) and matched words for each result.
         """
-        snippets = self.retrieve(query, top_k=top_k)
+        results = self.retrieve_with_scores(query, top_k=top_k)
 
-        if not snippets:
+        if not results:
             return "I do not know based on these docs."
 
         formatted = []
-        for filename, text in snippets:
-            formatted.append(f"[{filename}]\n{text}\n")
+        for filename, text, confidence, matched_words in results:
+            matched_display = ", ".join(sorted(matched_words)) if matched_words else "(none)"
+            bar_len = 20
+            filled = round(confidence * bar_len)
+            bar = "[" + "#" * filled + "-" * (bar_len - filled) + "]"
+            header = (
+                f"[{filename}]\n"
+                f"Confidence: {bar} {confidence:.2f}  "
+                f"({len(matched_words)} / {len(set(self._tokenize(query)))} query words matched)\n"
+                f"Matched words: {matched_display}"
+            )
+            formatted.append(f"{header}\n\n{text}\n")
 
         return "\n---\n".join(formatted)
 
