@@ -80,12 +80,10 @@ def run_naive_llm_mode(bot, has_llm):
     queries, label = get_query_or_use_samples()
     print(f"\nRunning naive LLM mode on {label}...\n")
 
-    all_text = bot.full_corpus_text()
-
     for query in queries:
         print("=" * 60)
         print(f"Question: {query}\n")
-        answer = bot.llm_client.naive_answer_over_full_docs(query, all_text)
+        answer = bot.answer_naive_llm(query)
         print("Answer:")
         print(answer)
         print()

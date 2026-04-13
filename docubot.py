@@ -232,6 +232,48 @@ class DocuBot:
 
         return "\n---\n".join(formatted)
 
+    def answer_naive_llm(self, query, top_k=3):
+        """
+        Phase 0 naive LLM mode with confidence scoring.
+        Calls the LLM without any retrieval context, then scores its response
+        by comparing its tokens against the tokens from the retrieved snippets
+        (same snippets mode 3 / RAG would use).
+
+        Confidence (0-1) = fraction of unique naive-response tokens that also
+        appear in the retrieved snippet text, i.e. how grounded the LLM's
+        free-form answer is in the actual docs.
+        """
+        if self.llm_client is None:
+            raise RuntimeError(
+                "Naive LLM mode requires an LLM client. Provide a GeminiClient instance."
+            )
+
+        llm_response = self.llm_client.naive_answer_over_full_docs(
+            query, self.full_corpus_text()
+        )
+
+        snippets = self.retrieve(query, top_k=top_k)
+        snippet_tokens = set()
+        for _, text in snippets:
+            snippet_tokens.update(self._tokenize(text))
+
+        response_tokens = set(self._tokenize(llm_response))
+        matched_words = response_tokens & snippet_tokens
+        confidence = round(len(matched_words) / len(response_tokens), 4) if response_tokens else 0.0
+
+        bar_len = 20
+        filled = round(confidence * bar_len)
+        bar = "[" + "#" * filled + "-" * (bar_len - filled) + "]"
+        matched_display = ", ".join(sorted(matched_words)) if matched_words else "(none)"
+
+        confidence_block = (
+            f"Confidence: {bar} {confidence:.2f}  "
+            f"({len(matched_words)} / {len(response_tokens)} response tokens found in retrieved snippets)\n"
+            f"Matched words: {matched_display}"
+        )
+
+        return f"{confidence_block}\n\n{llm_response}"
+
     def answer_rag(self, query, top_k=3):
         """
         Phase 2 RAG mode.
