@@ -1,3 +1,7 @@
+# Applied AI System
+
+**Original Project: [DocuBot](https://github.com/AhnafAhmed13/ai110-module4tinker-docubot-starter)**
+
 # DocuBot
 
 DocuBot is a small documentation assistant that helps answer developer questions about a codebase.  
